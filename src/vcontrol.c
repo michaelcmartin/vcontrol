@@ -20,29 +20,29 @@
 /* How many binding slots are allocated at once. */
 #define POOL_CHUNK_SIZE 64
 
-typedef struct _vcontrol_keybinding {
+typedef struct vcontrol_keybinding_s {
 	int *target;
-	struct _vcontrol_keypool *parent;
-	struct _vcontrol_keybinding *next;
+	struct vcontrol_keypool_s *parent;
+	struct vcontrol_keybinding_s *next;
 } keybinding;
 
-typedef struct _vcontrol_keypool {
+typedef struct vcontrol_keypool_s {
 	keybinding pool[POOL_CHUNK_SIZE];
 	int remaining;
-	struct _vcontrol_keypool *next;
+	struct vcontrol_keypool_s *next;
 } keypool;
 
-typedef struct _vcontrol_joystick_axis {
+typedef struct vcontrol_joystick_axis_s {
 	keybinding *neg, *pos;
 	int polarity;
 } axis;
 
-typedef struct _vcontrol_joystick_hat {
+typedef struct vcontrol_joystick_hat_s {
 	keybinding *left, *right, *up, *down;
 	Uint8 last;
 } hat;
 
-typedef struct _vcontrol_joystick {
+typedef struct vcontrol_joystick_s {
 	SDL_Joystick *stick;
 	int numaxes, numbuttons, numhats;
 	int threshold;
@@ -59,7 +59,7 @@ static keypool *pool;
 static VControl_NameBinding *nametable;
 
 static keypool *
-_allocate_key_chunk (void)
+allocate_key_chunk (void)
 {
 	keypool *x = malloc (sizeof (keypool));
 	if (x)
@@ -78,17 +78,17 @@ _allocate_key_chunk (void)
 }
 
 static void
-_free_key_pool (keypool *x)
+free_key_pool (keypool *x)
 {
 	if (x)
 	{
-		_free_key_pool (x->next);
+		free_key_pool (x->next);
 		free (x);
 	}
 }
 
 static void
-_create_joystick (int index)
+create_joystick (int index)
 {
 	SDL_Joystick *stick;
 	int axes, buttons, hats;
@@ -141,7 +141,7 @@ _create_joystick (int index)
 }
 			
 static void
-_destroy_joystick (int index)
+destroy_joystick (int index)
 {
 	SDL_Joystick *stick = joysticks[index].stick;
 	if (stick)
@@ -159,10 +159,10 @@ _destroy_joystick (int index)
 }
 
 static void
-_key_init (void)
+key_init (void)
 {
 	int i;
-	pool = _allocate_key_chunk ();
+	pool = allocate_key_chunk ();
 	for (i = 0; i < SDLK_LAST; i++)
 		bindings[i] = NULL;
 	/* Prepare for possible joystick controls.  We don't actually
@@ -187,26 +187,26 @@ _key_init (void)
 }
 
 static void
-_key_uninit (void)
+key_uninit (void)
 {
 	int i;
-	_free_key_pool (pool);
+	free_key_pool (pool);
 	for (i = 0; i < SDLK_LAST; i++)
 		bindings[i] = NULL;
 	pool = NULL;
 	for (i = 0; i < joycount; i++)
-		_destroy_joystick (i);
+		destroy_joystick (i);
 	free (joysticks);
 }
 
 static void
-_name_init (void)
+name_init (void)
 {
 	nametable = NULL;
 }
 
 static void
-_name_uninit (void)
+name_uninit (void)
 {
 	nametable = NULL;
 }
@@ -214,15 +214,15 @@ _name_uninit (void)
 void
 VControl_Init (void)
 {
-	_key_init ();
-	_name_init ();
+	key_init ();
+	name_init ();
 }
 
 void
 VControl_Uninit (void)
 {
-	_key_uninit ();
-	_name_uninit ();
+	key_uninit ();
+	name_uninit ();
 }
 
 int
@@ -242,7 +242,7 @@ VControl_SetJoyThreshold (int port, int threshold)
 
 
 static void
-_add_binding (keybinding **newptr, int *target)
+add_binding (keybinding **newptr, int *target)
 {
 	keybinding *newbinding;
 	keypool *searchbase;
@@ -270,7 +270,7 @@ _add_binding (keybinding **newptr, int *target)
 		/* If we're completely full, allocate a new chunk */
 		if (searchbase->next == NULL)
 		{
-			searchbase->next = _allocate_key_chunk ();
+			searchbase->next = allocate_key_chunk ();
 		}
 		searchbase = searchbase->next;
 	}
@@ -301,7 +301,7 @@ _add_binding (keybinding **newptr, int *target)
 }
 
 static void
-_remove_binding (keybinding **ptr, int *target)
+remove_binding (keybinding **ptr, int *target)
 {
 	if (!(*ptr))
 	{
@@ -334,7 +334,7 @@ _remove_binding (keybinding **ptr, int *target)
 }
 
 static void
-_activate (keybinding *i)
+activate (keybinding *i)
 {
 	while (i != NULL)
 	{
@@ -344,7 +344,7 @@ _activate (keybinding *i)
 }
 
 static void
-_deactivate (keybinding *i)
+deactivate (keybinding *i)
 {
 	while (i != NULL)
 	{
@@ -412,7 +412,7 @@ VControl_AddKeyBinding (SDLKey symbol, int *target)
 		fprintf (stderr, "VControl: Illegal key index %d\n", symbol);
 		return -1;
 	}
-	_add_binding(&bindings[symbol], target);
+	add_binding(&bindings[symbol], target);
 	return 0;
 }
 
@@ -423,7 +423,7 @@ VControl_RemoveKeyBinding (SDLKey symbol, int *target)
 		fprintf (stderr, "VControl: Illegal key index %d\n", symbol);
 		return;
 	}
-	_remove_binding (&bindings[symbol], target);
+	remove_binding (&bindings[symbol], target);
 }
 
 int
@@ -433,16 +433,16 @@ VControl_AddJoyAxisBinding (int port, int axis, int polarity, int *target)
 	{
 		joystick *j = &joysticks[port];
 		if (!(j->stick))
-			_create_joystick (port);
+			create_joystick (port);
 		if ((axis >= 0) && (axis < j->numaxes))
 		{
 			if (polarity < 0)
 			{
-				_add_binding(&joysticks[port].axes[axis].neg, target);
+				add_binding(&joysticks[port].axes[axis].neg, target);
 			}
 			else if (polarity > 0)
 			{
-				_add_binding(&joysticks[port].axes[axis].pos, target);
+				add_binding(&joysticks[port].axes[axis].pos, target);
 			}
 			else
 			{
@@ -471,16 +471,16 @@ VControl_RemoveJoyAxisBinding (int port, int axis, int polarity, int *target)
 	{
 		joystick *j = &joysticks[port];
 		if (!(j->stick))
-			_create_joystick (port);
+			create_joystick (port);
 		if ((axis >= 0) && (axis < j->numaxes))
 		{
 			if (polarity < 0)
 			{
-				_remove_binding(&joysticks[port].axes[axis].neg, target);
+				remove_binding(&joysticks[port].axes[axis].neg, target);
 			}
 			else if (polarity > 0)
 			{
-				_remove_binding(&joysticks[port].axes[axis].pos, target);
+				remove_binding(&joysticks[port].axes[axis].pos, target);
 			}
 			else
 			{
@@ -505,10 +505,10 @@ VControl_AddJoyButtonBinding (int port, int button, int *target)
 	{
 		joystick *j = &joysticks[port];
 		if (!(j->stick))
-			_create_joystick (port);
+			create_joystick (port);
 		if ((button >= 0) && (button < j->numbuttons))
 		{
-			_add_binding(&joysticks[port].buttons[button], target);
+			add_binding(&joysticks[port].buttons[button], target);
 		}
 		else
 		{
@@ -531,10 +531,10 @@ VControl_RemoveJoyButtonBinding (int port, int button, int *target)
 	{
 		joystick *j = &joysticks[port];
 		if (!(j->stick))
-			_create_joystick (port);
+			create_joystick (port);
 		if ((button >= 0) && (button < j->numbuttons))
 		{
-			_remove_binding (&joysticks[port].buttons[button], target);
+			remove_binding (&joysticks[port].buttons[button], target);
 		}
 		else
 		{
@@ -554,24 +554,24 @@ VControl_AddJoyHatBinding (int port, int which, Uint8 dir, int *target)
 	{
 		joystick *j = &joysticks[port];
 		if (!(j->stick))
-			_create_joystick (port);
+			create_joystick (port);
 		if ((which >= 0) && (which < j->numhats))
 		{
 			if (dir == SDL_HAT_LEFT)
 			{
-				_add_binding(&joysticks[port].hats[which].left, target);
+				add_binding(&joysticks[port].hats[which].left, target);
 			}
 			else if (dir == SDL_HAT_RIGHT)
 			{
-				_add_binding(&joysticks[port].hats[which].right, target);
+				add_binding(&joysticks[port].hats[which].right, target);
 			}
 			else if (dir == SDL_HAT_UP)
 			{
-				_add_binding(&joysticks[port].hats[which].up, target);
+				add_binding(&joysticks[port].hats[which].up, target);
 			}
 			else if (dir == SDL_HAT_DOWN)
 			{
-				_add_binding(&joysticks[port].hats[which].down, target);
+				add_binding(&joysticks[port].hats[which].down, target);
 			}
 			else
 			{
@@ -600,24 +600,24 @@ VControl_RemoveJoyHatBinding (int port, int which, Uint8 dir, int *target)
 	{
 		joystick *j = &joysticks[port];
 		if (!(j->stick))
-			_create_joystick (port);
+			create_joystick (port);
 		if ((which >= 0) && (which < j->numhats))
 		{
 			if (dir == SDL_HAT_LEFT)
 			{
-				_remove_binding(&joysticks[port].hats[which].left, target);
+				remove_binding(&joysticks[port].hats[which].left, target);
 			}
 			else if (dir == SDL_HAT_RIGHT)
 			{
-				_remove_binding(&joysticks[port].hats[which].right, target);
+				remove_binding(&joysticks[port].hats[which].right, target);
 			}
 			else if (dir == SDL_HAT_UP)
 			{
-				_remove_binding(&joysticks[port].hats[which].up, target);
+				remove_binding(&joysticks[port].hats[which].up, target);
 			}
 			else if (dir == SDL_HAT_DOWN)
 			{
-				_remove_binding(&joysticks[port].hats[which].down, target);
+				remove_binding(&joysticks[port].hats[which].down, target);
 			}
 			else
 			{
@@ -638,20 +638,20 @@ VControl_RemoveJoyHatBinding (int port, int which, Uint8 dir, int *target)
 void
 VControl_RemoveAllBindings ()
 {
-	_key_uninit ();
-	_key_init ();
+	key_uninit ();
+	key_init ();
 }
 
 void
 VControl_ProcessKeyDown (SDLKey symbol)
 {
-	_activate (bindings[symbol]);
+	activate (bindings[symbol]);
 }
 
 void
 VControl_ProcessKeyUp (SDLKey symbol)
 {
-	_deactivate (bindings[symbol]);
+	deactivate (bindings[symbol]);
 }
 
 void
@@ -659,7 +659,7 @@ VControl_ProcessJoyButtonDown (int port, int button)
 {
 	if (!joysticks[port].stick)
 		return;
-	_activate (joysticks[port].buttons[button]);
+	activate (joysticks[port].buttons[button]);
 }
 
 void
@@ -667,7 +667,7 @@ VControl_ProcessJoyButtonUp (int port, int button)
 {
 	if (!joysticks[port].stick)
 		return;
-	_deactivate (joysticks[port].buttons[button]);
+	deactivate (joysticks[port].buttons[button]);
 }
 
 void
@@ -683,10 +683,10 @@ VControl_ProcessJoyAxis (int port, int axis, int value)
 		{
 			if (joysticks[port].axes[axis].polarity == -1)
 			{
-				_deactivate (joysticks[port].axes[axis].neg);
+				deactivate (joysticks[port].axes[axis].neg);
 			}
 			joysticks[port].axes[axis].polarity = 1;
-			_activate (joysticks[port].axes[axis].pos);
+			activate (joysticks[port].axes[axis].pos);
 		}
 	}
 	else if (value < -t)
@@ -695,21 +695,21 @@ VControl_ProcessJoyAxis (int port, int axis, int value)
 		{
 			if (joysticks[port].axes[axis].polarity == 1)
 			{
-				_deactivate (joysticks[port].axes[axis].pos);
+				deactivate (joysticks[port].axes[axis].pos);
 			}
 			joysticks[port].axes[axis].polarity = -1;
-			_activate (joysticks[port].axes[axis].neg);
+			activate (joysticks[port].axes[axis].neg);
 		}
 	}
 	else
 	{
 		if (joysticks[port].axes[axis].polarity == -1)
 		{
-			_deactivate (joysticks[port].axes[axis].neg);
+			deactivate (joysticks[port].axes[axis].neg);
 		}
 		else if (joysticks[port].axes[axis].polarity == 1)
 		{
-			_deactivate (joysticks[port].axes[axis].pos);
+			deactivate (joysticks[port].axes[axis].pos);
 		}
 		joysticks[port].axes[axis].polarity = 0;
 	}
@@ -723,21 +723,21 @@ VControl_ProcessJoyHat (int port, int which, Uint8 value)
 		return;
 	old = joysticks[port].hats[which].last;
 	if (!(old & SDL_HAT_LEFT) && (value & SDL_HAT_LEFT))
-		_activate (joysticks[port].hats[which].left);
+		activate (joysticks[port].hats[which].left);
 	if (!(old & SDL_HAT_RIGHT) && (value & SDL_HAT_RIGHT))
-		_activate (joysticks[port].hats[which].right);
+		activate (joysticks[port].hats[which].right);
 	if (!(old & SDL_HAT_UP) && (value & SDL_HAT_UP))
-		_activate (joysticks[port].hats[which].up);
+		activate (joysticks[port].hats[which].up);
 	if (!(old & SDL_HAT_DOWN) && (value & SDL_HAT_DOWN))
-		_activate (joysticks[port].hats[which].down);
+		activate (joysticks[port].hats[which].down);
 	if ((old & SDL_HAT_LEFT) && !(value & SDL_HAT_LEFT))
-		_deactivate (joysticks[port].hats[which].left);
+		deactivate (joysticks[port].hats[which].left);
 	if ((old & SDL_HAT_RIGHT) && !(value & SDL_HAT_RIGHT))
-		_deactivate (joysticks[port].hats[which].right);
+		deactivate (joysticks[port].hats[which].right);
 	if ((old & SDL_HAT_UP) && !(value & SDL_HAT_UP))
-		_deactivate (joysticks[port].hats[which].up);
+		deactivate (joysticks[port].hats[which].up);
 	if ((old & SDL_HAT_DOWN) && !(value & SDL_HAT_DOWN))
-		_deactivate (joysticks[port].hats[which].down);
+		deactivate (joysticks[port].hats[which].down);
 	joysticks[port].hats[which].last = value;
 }
 
@@ -798,7 +798,7 @@ VControl_RegisterNameTable (VControl_NameBinding *table)
 }
 
 static char *
-_target2name (int *target)
+target2name (int *target)
 {
 	VControl_NameBinding *b = nametable;
 	while (b->target)
@@ -813,7 +813,7 @@ _target2name (int *target)
 }
 
 static int *
-_name2target (char *name)
+name2target (char *name)
 {
 	VControl_NameBinding *b = nametable;
 	while (b->target)
@@ -828,11 +828,11 @@ _name2target (char *name)
 }
 
 static void
-_dump_keybindings (FILE *out, keybinding *kb, char *name)
+dump_keybindings (FILE *out, keybinding *kb, char *name)
 {
 	while (kb != NULL)
 	{
-		char *targetname = _target2name (kb->target);
+		char *targetname = target2name (kb->target);
 		fprintf (out, "%s: %s\n", targetname, name);
 		kb = kb->next;
 	}
@@ -851,7 +851,7 @@ VControl_Dump (FILE *out)
 		if (kb != NULL)
 		{
 			sprintf (namebuffer, "key %s", VControl_code2name (i));
-			_dump_keybindings (out, kb, namebuffer);
+			dump_keybindings (out, kb, namebuffer);
 		}
 	}
 
@@ -866,9 +866,9 @@ VControl_Dump (FILE *out)
 			for (j = 0; j < joysticks[i].numaxes; j++)
 			{
 				sprintf (namebuffer, "joystick %d axis %d negative", i, j);
-				_dump_keybindings (out, joysticks[i].axes[j].neg, namebuffer);
+				dump_keybindings (out, joysticks[i].axes[j].neg, namebuffer);
 				sprintf (namebuffer, "joystick %d axis %d positive", i, j);
-				_dump_keybindings (out, joysticks[i].axes[j].pos, namebuffer);
+				dump_keybindings (out, joysticks[i].axes[j].pos, namebuffer);
 			}
 			for (j = 0; j < joysticks[i].numbuttons; j++)
 			{
@@ -876,19 +876,19 @@ VControl_Dump (FILE *out)
 				if (kb != NULL)
 				{
 					sprintf (namebuffer, "joystick %d button %d", i, j);
-					_dump_keybindings (out, kb, namebuffer);
+					dump_keybindings (out, kb, namebuffer);
 				}
 			}
 			for (j = 0; j < joysticks[i].numhats; j++)
 			{
 				sprintf (namebuffer, "joystick %d hat %d left", i, j);
-				_dump_keybindings (out, joysticks[i].hats[j].left, namebuffer);
+				dump_keybindings (out, joysticks[i].hats[j].left, namebuffer);
 				sprintf (namebuffer, "joystick %d hat %d right", i, j);
-				_dump_keybindings (out, joysticks[i].hats[j].right, namebuffer);
+				dump_keybindings (out, joysticks[i].hats[j].right, namebuffer);
 				sprintf (namebuffer, "joystick %d hat %d up", i, j);
-				_dump_keybindings (out, joysticks[i].hats[j].up, namebuffer);
+				dump_keybindings (out, joysticks[i].hats[j].up, namebuffer);
 				sprintf (namebuffer, "joystick %d hat %d down", i, j);
-				_dump_keybindings (out, joysticks[i].hats[j].down, namebuffer);
+				dump_keybindings (out, joysticks[i].hats[j].down, namebuffer);
 			}
 		}
 	}
@@ -948,7 +948,7 @@ VControl_Dump (FILE *out)
 #define LINE_SIZE 256
 #define TOKEN_SIZE 64
 
-typedef struct _vcontrol_parse_state {
+typedef struct vcontrol_parse_state_s {
 	char line[LINE_SIZE];
 	char token[TOKEN_SIZE];
 	int index;
@@ -957,7 +957,7 @@ typedef struct _vcontrol_parse_state {
 } parse_state;
 
 static void
-_next_token (parse_state *state)
+next_token (parse_state *state)
 {
 	int index, base;
 
@@ -987,7 +987,7 @@ _next_token (parse_state *state)
 }
 
 static void
-_next_line (parse_state *state, FILE *in)
+next_line (parse_state *state, FILE *in)
 {
 	int i, ch;
 	int comment = 0;
@@ -1025,24 +1025,24 @@ _next_line (parse_state *state, FILE *in)
 }
 
 static void
-_expected_error (parse_state *state, char *expected)
+expected_error (parse_state *state, char *expected)
 {
 	fprintf (stderr, "VControl: Expected '%s' on config file line %d\n", expected, state->linenum);
 	state->error = 1;
 }
 
 static void
-_consume (parse_state *state, char *expected)
+consume (parse_state *state, char *expected)
 {
 	if (strcasecmp (expected, state->token))
 	{
-		_expected_error (state, expected);
+		expected_error (state, expected);
 	}
-	_next_token (state);
+	next_token (state);
 }
 
 static int
-_consume_keyname (parse_state *state)
+consume_keyname (parse_state *state)
 {
 	int keysym = VControl_name2code (state->token);
 	if (!keysym)
@@ -1050,12 +1050,12 @@ _consume_keyname (parse_state *state)
 		fprintf (stderr, "VControl: Illegal key name '%s' on config file line %d\n", state->token, state->linenum);
 		state->error = 1;
 	}
-	_next_token (state);
+	next_token (state);
 	return keysym;
 }
 
 static int *
-_consume_idname (parse_state *state)
+consume_idname (parse_state *state)
 {
 	int *result = NULL;
 	int index = 0;
@@ -1066,7 +1066,7 @@ _consume_idname (parse_state *state)
 
 	if (index == 0)
 	{
-		fprintf (stderr, "VControl: Can't happen: blank token to _consume_idname (line %d)\n", state->linenum);
+		fprintf (stderr, "VControl: Can't happen: blank token to consume_idname (line %d)\n", state->linenum);
 		state->error = 1;
 		return NULL;
 	}
@@ -1074,14 +1074,14 @@ _consume_idname (parse_state *state)
 	index--;
 	if (state->token[index] != ':')
 	{
-		_expected_error (state, ":");
+		expected_error (state, ":");
 		return NULL;
 	}
 
 	state->token[index] = 0;  /* remove trailing colon */
 
-	result = _name2target (state->token);
-	_next_token (state);
+	result = name2target (state->token);
+	next_token (state);
 
 	if (!result)
 	{
@@ -1092,7 +1092,7 @@ _consume_idname (parse_state *state)
 }
 
 static int
-_consume_num (parse_state *state)
+consume_num (parse_state *state)
 {
 	char *end;
 	int result = strtol (state->token, &end, 10);
@@ -1101,12 +1101,12 @@ _consume_num (parse_state *state)
 		fprintf (stderr, "VControl: Expected integer on config line %d\n", state->linenum);
 		state->error = 1;
 	}
-	_next_token (state);
+	next_token (state);
 	return result;
 }
 
 static int
-_consume_polarity (parse_state *state)
+consume_polarity (parse_state *state)
 {
 	int result = 0;
 	if (!strcasecmp (state->token, "positive"))
@@ -1119,14 +1119,14 @@ _consume_polarity (parse_state *state)
 	}
 	else
 	{
-		_expected_error (state, "positive' or 'negative");
+		expected_error (state, "positive' or 'negative");
 	}
-	_next_token (state);
+	next_token (state);
 	return result;
 }
 
 static Uint8
-_consume_dir (parse_state *state)
+consume_dir (parse_state *state)
 {
 	Uint8 result = 0;
 	if (!strcasecmp (state->token, "left"))
@@ -1147,28 +1147,28 @@ _consume_dir (parse_state *state)
 	}
 	else
 	{
-		_expected_error (state, "left', 'right', 'up' or 'down");
+		expected_error (state, "left', 'right', 'up' or 'down");
 	}
-	_next_token (state);
+	next_token (state);
 	return result;
 }
 
 static void
-_parse_joybinding (parse_state *state, int *target)
+parse_joybinding (parse_state *state, int *target)
 {
 	int sticknum;
-	_consume (state, "joystick");
-	sticknum = _consume_num (state);
+	consume (state, "joystick");
+	sticknum = consume_num (state);
 	if (!state->error)
 	{
 		if (!strcasecmp (state->token, "axis"))
 		{
 			int axisnum;
-			_consume (state, "axis");
-			axisnum = _consume_num (state);
+			consume (state, "axis");
+			axisnum = consume_num (state);
 			if (!state->error)
 			{
-				int polarity = _consume_polarity (state);
+				int polarity = consume_polarity (state);
 				if (!state->error)
 				{
 					if (VControl_AddJoyAxisBinding (sticknum, axisnum, polarity, target))
@@ -1181,8 +1181,8 @@ _parse_joybinding (parse_state *state, int *target)
 		else if (!strcasecmp (state->token, "button"))
 		{
 			int buttonnum;
-			_consume (state, "button");
-			buttonnum = _consume_num (state);
+			consume (state, "button");
+			buttonnum = consume_num (state);
 			if (!state->error)
 			{
 				if (VControl_AddJoyButtonBinding (sticknum, buttonnum, target))
@@ -1194,11 +1194,11 @@ _parse_joybinding (parse_state *state, int *target)
 		else if (!strcasecmp (state->token, "hat"))
 		{
 			int hatnum;
-			_consume (state, "hat");
-			hatnum = _consume_num (state);
+			consume (state, "hat");
+			hatnum = consume_num (state);
 			if (!state->error)
 			{
-				Uint8 dir = _consume_dir (state);
+				Uint8 dir = consume_dir (state);
 				if (!state->error)
 				{
 					if (VControl_AddJoyHatBinding (sticknum, hatnum, dir, target))
@@ -1210,23 +1210,23 @@ _parse_joybinding (parse_state *state, int *target)
 		}
 		else
 		{
-			_expected_error (state, "axis', 'button', or 'hat");
+			expected_error (state, "axis', 'button', or 'hat");
 		}
 	}
 }
 
 static void
-_parse_binding (parse_state *state)
+parse_binding (parse_state *state)
 {
-	int *target = _consume_idname (state);
+	int *target = consume_idname (state);
 	if (!state->error)
 	{
 		if (!strcasecmp (state->token, "key"))
 		{
 			/* Parse key binding */
 			int keysym;
-			_consume (state, "key");
-			keysym = _consume_keyname (state);
+			consume (state, "key");
+			keysym = consume_keyname (state);
 			if (!state->error)
 			{
 				if (VControl_AddKeyBinding (keysym, target))
@@ -1237,20 +1237,20 @@ _parse_binding (parse_state *state)
 		}
 		else if (!strcasecmp (state->token, "joystick"))
 		{
-			_parse_joybinding (state, target);
+			parse_joybinding (state, target);
 		}
 		else
 		{
-			_expected_error (state, "key' or 'joystick");
+			expected_error (state, "key' or 'joystick");
 		}
 	}
 }
 
 static void
-_parse_config_line (parse_state *state)
+parse_config_line (parse_state *state)
 {
 	state->error = 0;
-	_next_token (state);
+	next_token (state);
 	if (!state->token[0])
 	{
 		/* Blank line, skip it */
@@ -1259,10 +1259,10 @@ _parse_config_line (parse_state *state)
 	if (!strcasecmp (state->token, "joystick"))
 	{
 		int sticknum, threshold = 0;
-		_consume (state, "joystick");
-		sticknum = _consume_num (state);
-		if (!state->error) _consume (state, "threshold");
-		if (!state->error) threshold = _consume_num (state);
+		consume (state, "joystick");
+		sticknum = consume_num (state);
+		if (!state->error) consume (state, "threshold");
+		if (!state->error) threshold = consume_num (state);
 		if (!state->error)
 		{
 			if (VControl_SetJoyThreshold (sticknum, threshold))
@@ -1273,7 +1273,7 @@ _parse_config_line (parse_state *state)
 		return;
 	}
 	/* Otherwise, it must be a binding */
-	_parse_binding (state);
+	parse_binding (state);
 }
 
 int
@@ -1290,10 +1290,10 @@ VControl_ReadConfiguration (FILE *in)
 	errors = 0;
 	while (1)
 	{
-		_next_line (&ps, in);
+		next_line (&ps, in);
 		if (!ps.line[0])
 			break;
-		_parse_config_line (&ps);
+		parse_config_line (&ps);
 		if (ps.error)
 		{
 			errors++;
@@ -1317,13 +1317,13 @@ VControl_TokenizeFile (FILE *in)
 	ps.linenum = 0;
 	while (1)
 	{
-		_next_line (&ps, in);
+		next_line (&ps, in);
 		if (!ps.line[0])
 			break;
 		printf ("%3d:", ps.linenum);
 		while (1)
 		{
-			_next_token (&ps);
+			next_token (&ps);
 			if (!ps.token[0])
 				break;
 			printf (" \"%s\"", ps.token);
