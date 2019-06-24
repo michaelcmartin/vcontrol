@@ -76,7 +76,13 @@ main (int argc, char **argv)
 	}
 
 	atexit(SDL_Quit);
-	if (!SDL_SetVideoMode(100, 100, 16, 0))
+#if SDL_MAJOR_VERSION == 1
+        if (!SDL_SetVideoMode(100, 100, 16, 0))
+#else
+        SDL_Window *screen = SDL_CreateWindow("Test window", SDL_WINDOWPOS_UNDEFINED,
+                        SDL_WINDOWPOS_UNDEFINED, 100, 100, 0);
+        if (!screen)
+#endif
 	{
 		fprintf (stderr, "Doom!  Couldn't initialize SDL Video: %s\n", SDL_GetError());
 		exit(1);
@@ -97,7 +103,11 @@ main (int argc, char **argv)
 
 	VControl_ResetInput ();
 
+#if SDL_MAJOR_VERSION == 1
 	poller = SDL_CreateThread (pollThread, &done);
+#else
+	poller = SDL_CreateThread (pollThread, "Poller thread", &done);
+#endif
 
 	while (!done)
 	{

@@ -57,11 +57,18 @@ main (int argc, char **argv)
 	}
 
 	atexit(SDL_Quit);
+#if SDL_MAJOR_VERSION == 1
 	if (!SDL_SetVideoMode(100, 100, 16, 0))
+#else
+	SDL_Window *screen = SDL_CreateWindow("Test window", SDL_WINDOWPOS_UNDEFINED,
+			SDL_WINDOWPOS_UNDEFINED, 100, 100, 0);
+	if (!screen)
+#endif
 	{
 		fprintf (stderr, "Doom!  Couldn't initialize SDL Video: %s\n", SDL_GetError());
 		exit(1);
 	}
+
 
 	SDL_JoystickEventState (SDL_ENABLE);
 

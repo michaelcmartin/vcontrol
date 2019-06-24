@@ -104,6 +104,7 @@ static keyname keynames[] = {
 	{"y", SDLK_y},
 	{"z", SDLK_z},
 	{"Delete", SDLK_DELETE},
+#if SDL_MAJOR_VERSION == 1
 	{"Keypad-0", SDLK_KP0},
 	{"Keypad-1", SDLK_KP1},
 	{"Keypad-2", SDLK_KP2},
@@ -114,6 +115,18 @@ static keyname keynames[] = {
 	{"Keypad-7", SDLK_KP7},
 	{"Keypad-8", SDLK_KP8},
 	{"Keypad-9", SDLK_KP9},
+#else
+	{"Keypad-0", SDLK_KP_0},
+	{"Keypad-1", SDLK_KP_1},
+	{"Keypad-2", SDLK_KP_2},
+	{"Keypad-3", SDLK_KP_3},
+	{"Keypad-4", SDLK_KP_4},
+	{"Keypad-5", SDLK_KP_5},
+	{"Keypad-6", SDLK_KP_6},
+	{"Keypad-7", SDLK_KP_7},
+	{"Keypad-8", SDLK_KP_8},
+	{"Keypad-9", SDLK_KP_9},
+#endif
 	{"Keypad-.", SDLK_KP_PERIOD},
 	{"Keypad-/", SDLK_KP_DIVIDE},
 	{"Keypad-*", SDLK_KP_MULTIPLY},
@@ -151,6 +164,7 @@ static keyname keynames[] = {
 	{"LeftControl", SDLK_LCTRL},
 	{"RightAlt", SDLK_RALT},
 	{"LeftAlt", SDLK_LALT},
+#if SDL_MAJOR_VERSION == 1
 	{"RightMeta", SDLK_RMETA},
 	{"LeftMeta", SDLK_LMETA},
 	{"RightSuper", SDLK_RSUPER},
@@ -165,6 +179,7 @@ static keyname keynames[] = {
 	{"Power", SDLK_POWER},
 	{"Euro", SDLK_EURO},
 	{"Undo", SDLK_UNDO},
+#endif
 	{"Unknown", 0}};  
 /* Last element must have code zero */
 

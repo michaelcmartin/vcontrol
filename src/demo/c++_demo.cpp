@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <stdlib.h>
+#include <string.h>
 #include <SDL.h>
 #include "vcontrol.h"
 
@@ -46,28 +47,35 @@ class DemoInput {
 	VControl_NameBinding table[7];
 public:
 	DemoInput (void);
+	~DemoInput (void);
 	void update (void);
 };	
 
 DemoInput::DemoInput (void)
 {
-	table[0].name = "Up";
+	table[0].name = strdup("Up");
 	table[0].target = &current.up;
-	table[1].name = "Down";
+	table[1].name = strdup("Down");
 	table[1].target = &current.down;
-	table[2].name = "Left";
+	table[2].name = strdup("Left");
 	table[2].target = &current.left;
-	table[3].name = "Right";
+	table[3].name = strdup("Right");
 	table[3].target = &current.right;
-	table[4].name = "Fire";
+	table[4].name = strdup("Fire");
 	table[4].target = &current.fire;
-	table[5].name = "Special";
+	table[5].name = strdup("Special");
 	table[5].target = &current.special;
 	table[6].name = NULL;
-	table[7].target = NULL;
+	table[6].target = NULL;
 	VControl_RegisterNameTable (table);
 }
 
+DemoInput::~DemoInput ()
+{
+	for (int i = 0; i < 6; ++i) {
+		free(table[i].name);
+	}
+}
 void DemoInput::update ()
 {
 	if (old != current) {
@@ -88,7 +96,13 @@ main (int argc, char **argv)
 	}
 
 	atexit(SDL_Quit);
-	if (!SDL_SetVideoMode(100, 100, 16, 0))
+#if SDL_MAJOR_VERSION == 1
+        if (!SDL_SetVideoMode(100, 100, 16, 0))
+#else
+        SDL_Window *screen = SDL_CreateWindow("Test window", SDL_WINDOWPOS_UNDEFINED,
+                        SDL_WINDOWPOS_UNDEFINED, 100, 100, 0);
+        if (!screen)
+#endif
 	{
 		fprintf (stderr, "Doom!  Couldn't initialize SDL Video: %s\n", SDL_GetError());
 		exit(1);

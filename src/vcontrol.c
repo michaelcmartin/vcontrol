@@ -28,7 +28,7 @@
 
 typedef struct vcontrol_keybinding_s {
 	int *target;
-	SDLKey keycode;
+	sdl_key_t keycode;
 	struct vcontrol_keypool_s *parent;
 	struct vcontrol_keybinding_s *next;
 } keybinding;
@@ -115,7 +115,11 @@ create_joystick (int index)
 	{
 		joystick *x = &joysticks[index];
 		int j;
+#if SDL_MAJOR_VERSION == 1
 		fprintf (stderr, "VControl opened joystick: %s\n", SDL_JoystickName (index));
+#else
+		fprintf (stderr, "VControl opened joystick: %s\n", SDL_JoystickName (stick));
+#endif
 		axes = SDL_JoystickNumAxes (stick);
 		buttons = SDL_JoystickNumButtons (stick);
 		hats = SDL_JoystickNumHats (stick);
@@ -250,7 +254,7 @@ VControl_SetJoyThreshold (int port, int threshold)
 
 
 static void
-add_binding (keybinding **newptr, int *target, SDLKey keycode)
+add_binding (keybinding **newptr, int *target, sdl_key_t keycode)
 {
 	keybinding *newbinding;
 	keypool *searchbase;
@@ -310,7 +314,7 @@ add_binding (keybinding **newptr, int *target, SDLKey keycode)
 }
 
 static void
-remove_binding (keybinding **ptr, int *target, SDLKey keycode)
+remove_binding (keybinding **ptr, int *target, sdl_key_t keycode)
 {
 	if (!(*ptr))
 	{
@@ -345,7 +349,7 @@ remove_binding (keybinding **ptr, int *target, SDLKey keycode)
 }
 
 static void
-activate (keybinding *i, SDLKey keycode)
+activate (keybinding *i, sdl_key_t keycode)
 {
 	while (i != NULL)
 	{
@@ -357,7 +361,7 @@ activate (keybinding *i, SDLKey keycode)
 }
 
 static void
-deactivate (keybinding *i, SDLKey keycode)
+deactivate (keybinding *i, sdl_key_t keycode)
 {
 	while (i != NULL)
 	{
@@ -419,14 +423,14 @@ VControl_RemoveBinding (SDL_Event *e, int *target)
 }
 
 int
-VControl_AddKeyBinding (SDLKey symbol, int *target)
+VControl_AddKeyBinding (sdl_key_t symbol, int *target)
 {
 	add_binding(&bindings[symbol % KEYBOARD_INPUT_BUCKETS], target, symbol);
 	return 0;
 }
 
 void
-VControl_RemoveKeyBinding (SDLKey symbol, int *target)
+VControl_RemoveKeyBinding (sdl_key_t symbol, int *target)
 {
 	remove_binding (&bindings[symbol % KEYBOARD_INPUT_BUCKETS], target, symbol);
 }
@@ -648,13 +652,13 @@ VControl_RemoveAllBindings ()
 }
 
 void
-VControl_ProcessKeyDown (SDLKey symbol)
+VControl_ProcessKeyDown (sdl_key_t symbol)
 {
 	activate (bindings[symbol % KEYBOARD_INPUT_BUCKETS], symbol);
 }
 
 void
-VControl_ProcessKeyUp (SDLKey symbol)
+VControl_ProcessKeyUp (sdl_key_t symbol)
 {
 	deactivate (bindings[symbol % KEYBOARD_INPUT_BUCKETS], symbol);
 }
