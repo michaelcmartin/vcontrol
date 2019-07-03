@@ -1,5 +1,5 @@
-CFLAGS=`sdl-config --cflags` -c -Iinclude -O2
-LDOPTS=`sdl-config --libs` -Llib -lvcontrol
+CFLAGS=`sdl2-config --cflags` -c -Iinclude -O2
+LDOPTS=`sdl2-config --libs` -Llib -lvcontrol
 LIBS=lib/libvcontrol.a
 
 COBJS=src/vcontrol.o src/keynames.o \
